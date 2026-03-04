@@ -287,7 +287,10 @@ class RequestHandler(BaseHTTPRequestHandler):
 
               manifest_data = content
               self.send_response(200)
-              self.send_header('Content-type', 'application/xml')
+              if manifest_type == 'mpd':
+                self.send_header('Content-type', 'application/dash+xml')
+              elif manifest_type == 'ism':
+                self.send_header('Content-type', 'application/vnd.ms-sstr+xml')
               self.end_headers()
               self.wfile.write(manifest_data.encode('utf-8'))
             elif 'QualityLevels' in path:

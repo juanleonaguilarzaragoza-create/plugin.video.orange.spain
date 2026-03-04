@@ -59,6 +59,8 @@ def play(params):
   try:
     if params.get('source_type') == 'HLS' and 'playback_url' in params:
       play_item = xbmcgui.ListItem(path=params['playback_url'])
+      play_item.setProperty('inputstream', 'inputstream.adaptive')
+      play_item.setProperty('inputstream.adaptive.manifest_type', 'hls')
       xbmcplugin.setResolvedUrl(_handle, True, listitem=play_item)
       return
 
@@ -162,21 +164,30 @@ def play(params):
     return
 
   play_item = xbmcgui.ListItem(path= playback_url)
+  license_type = 'com.widevine.alpha'
+  license_key = ''
+
   if format(addon.getSetting('drm_type')) == 'Playready':
     license_url = o.get_license_url()
     LOG('license_url: {}'.format(license_url))
     headers += '&Content-Type=text/xml&SOAPAction=http://schemas.microsoft.com/DRM/2007/03/protocols/AcquireLicense'
-    play_item.setProperty('inputstream.adaptive.license_type', 'com.microsoft.playready')
+    license_type = 'com.microsoft.playready'
   else:
     license_url = 'https://pc.orangetv.orange.es/pc/api/rtv/v1/widevinedrm'
-    play_item.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
+
   if addon.getSettingBool('use_proxy_for_license') and proxy:
-    license_url = '{}/license?id={}&stype={}&program_id={}&token={}&lurl={}'.format(proxy, id, stype, program_id, token, license_url)
-    play_item.setProperty('inputstream.adaptive.license_key', '{}|{}|R{{SSM}}|'.format(license_url, headers))
+    license_key = '{}/license?id={}&stype={}&program_id={}&token={}&lurl={}'.format(proxy, id, stype, program_id, token, license_url)
   else:
-    play_item.setProperty('inputstream.adaptive.license_key', '{}?token={}|{}|R{{SSM}}|'.format(license_url, token, headers))
+    license_key = '{}?token={}'.format(license_url, token)
+
+  if kodi_version > 20:
+    play_item.setProperty('inputstream.adaptive.drm_legacy', '{}|{}|{}'.format(license_type, license_key, headers))
+  else:
+    play_item.setProperty('inputstream.adaptive.license_type', license_type)
+    play_item.setProperty('inputstream.adaptive.license_key', '{}|{}|R{{SSM}}|'.format(license_key, headers))
+    play_item.setProperty('inputstream.adaptive.manifest_type', manifest_type)
+
   play_item.setProperty('inputstream.adaptive.server_certificate', certificate);
-  play_item.setProperty('inputstream.adaptive.manifest_type', manifest_type)
   play_item.setProperty('inputstream.adaptive.stream_headers', headers)
   play_item.setProperty('inputstream.adaptive.manifest_headers', headers)
 
